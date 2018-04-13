@@ -8,6 +8,14 @@
  * Author URI: https://github.com/wongm/automatic-featured-images-from-external-content
  * License: GPLv2
  * Text Domain: automatic-featured-images-from-external-content
+ *
+ * Forked Plugin Name: Automatic Featured Images from YouTube / Vimeo
+ * Forked Plugin URI: http://webdevstudios.com
+ * Forked Description: If a YouTube or Vimeo video exists in the first few paragraphs of a post, automatically set the post's featured image to that video's thumbnail.
+ * Forked Version: 1.1.1
+ * Forked Author: WebDevStudios
+ * Forked Author URI: http://webdevstudios.com
+ * Forked Text Domain: automatic-featured-images-from-videos
  */
 
 /*
