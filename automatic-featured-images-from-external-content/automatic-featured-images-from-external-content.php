@@ -7,7 +7,7 @@
  * Author: Marcus Wong
  * Author URI: https://github.com/wongm/automatic-featured-images-from-external-content
  * License: GPLv2
- * Text Domain: automatic-featured-images-from-third-parties
+ * Text Domain: automatic-featured-images-from-external-content
  */
 
 /*
