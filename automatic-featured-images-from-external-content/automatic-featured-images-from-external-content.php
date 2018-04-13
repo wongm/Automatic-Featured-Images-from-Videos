@@ -354,8 +354,6 @@ function mtw_check_for_flickr( $content ) {
 }
 
 function mtw_get_flickr_details( $content ) {
-	
-	
 	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(static)(\.)?(flickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
 		
 		$size = "_o";
@@ -383,7 +381,7 @@ function mtw_get_flickr_details( $content ) {
  *
  */
 function mtw_check_for_youtube( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(youtu|youtube|youtube-nocookie)\.(com|be)\/(watch|embed)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)#', $content, $youtube_matches ) ) {
+	if ( preg_match( '#\/\/(www\.)?(youtu|youtube|youtube-nocookie)\.(com|be)\/(?!.*user)(watch|embed)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)#', $content, $youtube_matches ) ) {
 		return $youtube_matches[6];
 	}
 
