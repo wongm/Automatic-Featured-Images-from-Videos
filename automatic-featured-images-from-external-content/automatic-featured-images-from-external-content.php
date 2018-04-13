@@ -343,8 +343,8 @@ function mtw_get_railGeelong_details( $content ) {
 }
 
 function mtw_check_for_flickr( $content ) {
-	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(staticflickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
-		return $flickr_matches[4];
+	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(static)(\.)?(flickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
+		return $flickr_matches[6];
 	}
 
 	return false;
@@ -353,14 +353,14 @@ function mtw_check_for_flickr( $content ) {
 function mtw_get_flickr_details( $content ) {
 	
 	
-	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(staticflickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
+	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(static)(\.)?(flickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
 		
 		$size = "_o";
-		if ($flickr_matches[6] != $size) {
+		if ($flickr_matches[8] != $size) {
 			$size = "_b";
 		}
 		
-		return "https://" . $flickr_matches[1] . "." . $flickr_matches[2] . "/" . $flickr_matches[3] . "/" . $flickr_matches[4] . "_" . $flickr_matches[5] . $size . ".jpg";
+		return "https://" . $flickr_matches[1] . "." . $flickr_matches[2] . $flickr_matches[3] . $flickr_matches[4] . "/" . $flickr_matches[5] . "/" . $flickr_matches[6] . "_" . $flickr_matches[7] . $size . ".jpg";
 	}
 
 	return "";
