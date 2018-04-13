@@ -46,6 +46,45 @@ add_action( 'wds_bulk_process_video_query_init', 'wds_bulk_process_video_query' 
 // Slip in the jquery to append the button for bulk processing.
 add_action( 'admin_enqueue_scripts', 'wds_customize_post_buttons' );
 
+
+
+add_filter( 'bulk_actions-edit-post', 'register_bulk_video' );
+ 
+function register_bulk_video($bulk_actions) {
+  $bulk_actions['bulk_video'] = __( 'Bulk load featured image', 'bulk_video');
+  return $bulk_actions;
+}
+
+add_filter( 'handle_bulk_actions-edit-post', 'my_bulk_action_handler', 10, 3 );
+ 
+function my_bulk_action_handler( $redirect_to, $doaction, $post_ids ) {
+  if ( $doaction !== 'bulk_video' ) {
+    return $redirect_to;
+  }
+  foreach ( $post_ids as $post_id ) {
+    echo $post_id;
+	$post = get_post($post_id);
+	wds_check_if_content_contains_video( $post_id, $post );
+	
+  }
+  $redirect_to = add_query_arg( 'bulk_emailed_posts', count( $post_ids ), $redirect_to );
+  return $redirect_to;
+}
+
+add_action( 'admin_notices', 'my_bulk_action_admin_notice' );
+ 
+function my_bulk_action_admin_notice() {
+  if ( ! empty( $_REQUEST['bulk_emailed_posts'] ) ) {
+    $emailed_count = intval( $_REQUEST['bulk_emailed_posts'] );
+    printf( '<div id="message" class="updated fade">' .
+      _n( 'Updated featured image on %s post.',
+        'Updated featured images on %s posts.',
+        $emailed_count,
+        'bulk_video'
+      ) . '</div>', $emailed_count );
+  }
+}
+
 /**
  * Load....automatically...LOL.
  *
