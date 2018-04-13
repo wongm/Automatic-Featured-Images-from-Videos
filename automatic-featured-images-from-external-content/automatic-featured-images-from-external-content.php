@@ -1,13 +1,13 @@
 <?php
 /*
- * Plugin Name: Automatic Featured Images from YouTube / Vimeo
- * Plugin URI: http://webdevstudios.com
+ * Plugin Name: Automatic Featured Images from External Content
+ * Plugin URI: https://github.com/wongm/automatic-featured-images-from-external-content
  * Description: If a YouTube or Vimeo video exists in the first few paragraphs of a post, automatically set the post's featured image to that video's thumbnail.
- * Version: 1.1.1
- * Author: WebDevStudios
- * Author URI: http://webdevstudios.com
+ * Version: 1.2
+ * Author: Marcus Wong
+ * Author URI: https://github.com/wongm/automatic-featured-images-from-external-content
  * License: GPLv2
- * Text Domain: automatic-featured-images-from-videos
+ * Text Domain: automatic-featured-images-from-third-parties
  */
 
 /*
@@ -29,59 +29,67 @@
 // Used for js loading elsewhere.
 define( 'WDSAFI_DIR', plugin_dir_url( __FILE__ ) );
 
-add_action( 'plugins_loaded', 'wds_load_afi' );
+add_action( 'plugins_loaded', 'mtw_load_afi' );
 
-// Check on save if content contains video.
-add_action( 'save_post', 'wds_check_if_content_contains_video', 10, 2 );
+// Check on save if content contains external content.
+add_action( 'save_post', 'mtw_check_if_content_contains_external_content', 10, 2 );
 
-// Add a meta box to the post types we are checking for video on.
-add_action( 'add_meta_boxes', 'wds_register_display_video_metabox' );
+// Add a meta box to the post types we are checking for external content on.
+add_action( 'add_meta_boxes', 'mtw_register_display_video_metabox' );
 
 // Create an endpoint that receives the params to start bulk processing.
-add_action( 'wp_ajax_wds_queue_bulk_processing', 'wds_queue_bulk_processing' );
+add_action( 'wp_ajax_mtw_queue_bulk_processing', 'mtw_queue_bulk_processing' );
 
 // Handle scheduled bulk request.
-add_action( 'wds_bulk_process_video_query_init', 'wds_bulk_process_video_query' );
+add_action( 'mtw_bulk_process_external_content_query_init_init', 'mtw_bulk_process_external_content_query' );
 
 // Slip in the jquery to append the button for bulk processing.
-add_action( 'admin_enqueue_scripts', 'wds_customize_post_buttons' );
+add_action( 'admin_enqueue_scripts', 'mtw_customize_post_buttons' );
 
+// Bulk actions from manage edit posts page
+add_filter( 'bulk_actions-edit-post', 'register_bulk_load_featured_image' );
 
+add_filter( 'handle_bulk_actions-edit-post', 'bulk_load_featured_image_action_handler', 10, 3 );
 
-add_filter( 'bulk_actions-edit-post', 'register_bulk_video' );
- 
-function register_bulk_video($bulk_actions) {
-  $bulk_actions['bulk_video'] = __( 'Bulk load featured image', 'bulk_video');
+add_action( 'admin_notices', 'bulk_load_featured_image_action_admin_notice' );
+
+/**
+ * Register 'Bulk load featured image' action on edit post page
+ */
+function register_bulk_load_featured_image($bulk_actions) {
+  $bulk_actions['bulk_load_featured_image'] = __( 'Bulk load featured image', 'bulk_load_featured_image');
   return $bulk_actions;
 }
-
-add_filter( 'handle_bulk_actions-edit-post', 'my_bulk_action_handler', 10, 3 );
  
-function my_bulk_action_handler( $redirect_to, $doaction, $post_ids ) {
-  if ( $doaction !== 'bulk_video' ) {
+/**
+ * Handle 'Bulk load featured image' action from edit post page
+ */
+function bulk_load_featured_image_action_handler( $redirect_to, $doaction, $post_ids ) {
+  if ( $doaction !== 'bulk_load_featured_image' ) {
     return $redirect_to;
   }
   foreach ( $post_ids as $post_id ) {
     echo $post_id;
 	$post = get_post($post_id);
-	wds_check_if_content_contains_video( $post_id, $post );
+	mtw_check_if_content_contains_external_content( $post_id, $post );
 	
   }
-  $redirect_to = add_query_arg( 'bulk_emailed_posts', count( $post_ids ), $redirect_to );
+  $redirect_to = add_query_arg( 'bulk_loaded_featured_image', count( $post_ids ), $redirect_to );
   return $redirect_to;
 }
-
-add_action( 'admin_notices', 'my_bulk_action_admin_notice' );
  
-function my_bulk_action_admin_notice() {
-  if ( ! empty( $_REQUEST['bulk_emailed_posts'] ) ) {
-    $emailed_count = intval( $_REQUEST['bulk_emailed_posts'] );
-    printf( '<div id="message" class="updated fade">' .
+/**
+ * Display message after 'Bulk load featured image' action is complete
+ */
+function bulk_load_featured_image_action_admin_notice() {
+  if ( ! empty( $_REQUEST['bulk_loaded_featured_image'] ) ) {
+    $emailed_count = intval( $_REQUEST['bulk_loaded_featured_image'] );
+    printf( '<div id="message" class="updated fade"><p>' .
       _n( 'Updated featured image on %s post.',
         'Updated featured images on %s posts.',
         $emailed_count,
-        'bulk_video'
-      ) . '</div>', $emailed_count );
+        'bulk_load_featured_image'
+      ) . '</p></div>', $emailed_count );
   }
 }
 
@@ -92,7 +100,7 @@ function my_bulk_action_admin_notice() {
  *
  * @since 1.1.0
  */
-function wds_load_afi() {
+function mtw_load_afi() {
 	require_once( plugin_dir_path( __FILE__ ) . 'includes/ajax.php' );
 	require_once( plugin_dir_path( __FILE__ ) . 'includes/bulk-operations.php' );
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -101,22 +109,7 @@ function wds_load_afi() {
 }
 
 /**
- * This function name is no longer accurate but it may be in use so we will leave it.
- *
- * @author     Gary Kovar
- *
- * @deprecated 1.0.5
- *
- * @param int     $post_id Post ID.
- * @param WP_Post $post    Post object.
- */
-function wds_set_media_as_featured_image( $post_id, $post ) {
-	wds_check_if_content_contains_video( $post_id, $post );
-	_doing_it_wrong( 'wds_set_media_as_feature_image', esc_html( 'This function has been replaced with wds_check_if_content_contains_video', 'automatic-featured-images-from-videos' ), '4.6' );
-}
-
-/**
- * Check if a post contains video.  Maybe set a thumbnail, store the video URL as post meta.
+ * Check if a post contains external content.  Maybe set a thumbnail, store the external content URL as post meta.
  *
  * @author Gary Kovar
  *
@@ -125,7 +118,7 @@ function wds_set_media_as_featured_image( $post_id, $post ) {
  * @param int    $post_id ID of the post being saved.
  * @param object $post    Post object.
  */
-function wds_check_if_content_contains_video( $post_id, $post ) {
+function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 		return;
@@ -146,45 +139,42 @@ function wds_check_if_content_contains_video( $post_id, $post ) {
 	 *
 	 * @param int $value Character limit to search.
 	 */
-	$content = substr( $content, 0, apply_filters( 'wds_featured_images_character_limit', 800 ) );
+	$content = substr( $content, 0, apply_filters( 'mtw_featured_images_character_limit', 800 ) );
 
 	// Allow developers to filter the content to allow for searching in postmeta or other places.
-	$content = apply_filters( 'wds_featured_images_from_video_filter_content', $content, $post_id );
+	$content = apply_filters( 'mtw_featured_images_from_external_content_filter_content', $content, $post_id );
 
-	// Set the video id.
-	$wordpress_id          = wds_check_for_wordpress( $content );
-	$flickr_id          = wds_check_for_flickr( $content );
-	$wongm_url          = wds_check_for_wongm( $content );
-	$railGeelong_url          = wds_check_for_railGeelong( $content );
-	$youtube_id          = wds_check_for_youtube( $content );
-	$vimeo_id            = wds_check_for_vimeo( $content );
-	$video_thumbnail_url = '';
+	// Set the external content id.
+	$wordpress_id        = mtw_check_for_wordpress( $content );
+	$wongmRailGallery_id = mtw_check_for_wongmRailGallery( $content );
+	$railGeelong_id      = mtw_check_for_railGeelong( $content );
+	$flickr_id           = mtw_check_for_flickr( $content );
+	$youtube_id          = mtw_check_for_youtube( $content );
+	$vimeo_id            = mtw_check_for_vimeo( $content );
+	$external_image_url  = '';
 	
-	
-	
-	if ( $wongm_url ) {
-		$video_thumbnail_url = $wongm_url;
-		$wongm_id = wds_check_for_wongmId( $content );
+	if ( $wongmRailGallery_id ) {
+		$external_image_url  = mtw_get_wongmRailGallery_details( $content );
 	}
-	if ( $railGeelong_url ) {
-		$video_thumbnail_url = $railGeelong_url;
-		$railGeelong_id = wds_check_for_railGeelongId( $content );
+	
+	if ( $railGeelong_id ) {
+		$external_image_url  = mtw_get_railGeelong_details( $content );
 	}
 
 	if ( $flickr_id ) {
-		$video_thumbnail_url     = wds_get_flickr_url( $content );
+		$external_image_url  = mtw_get_flickr_details( $content );
 	}
 
 	if ( $youtube_id ) {
-		$youtube_details     = wds_get_youtube_details( $youtube_id );
-		$video_thumbnail_url = $youtube_details['video_thumbnail_url'];
+		$youtube_details     = mtw_get_youtube_details( $youtube_id );
+		$external_image_url  = $youtube_details['external_image_url'];
 		$video_url           = $youtube_details['video_url'];
 		$video_embed_url     = $youtube_details['video_embed_url'];
 	}
 
 	if ( $vimeo_id ) {
-		$vimeo_details       = wds_get_vimeo_details( $vimeo_id );
-		$video_thumbnail_url = $vimeo_details['video_thumbnail_url'];
+		$vimeo_details       = mtw_get_vimeo_details( $vimeo_id );
+		$external_image_url  = $vimeo_details['external_image_url'];
 		$video_url           = $vimeo_details['video_url'];
 		$video_embed_url     = $vimeo_details['video_embed_url'];
 	}
@@ -192,32 +182,32 @@ function wds_check_if_content_contains_video( $post_id, $post ) {
 	if ( $post_id
 	     && ! has_post_thumbnail( $post_id )
 	     && $content
-	     && ( $youtube_details || $vimeo_details || $wongm_id || $railGeelong_id || $flickr_id || $wordpress_id )
+	     && ( $youtube_details || $vimeo_details || $wongmRailGallery_id || $railGeelong_id || $flickr_id || $wordpress_id )
 	) {
-		$video_id = '';
+		$external_image_id = '';
 		if ( $wordpress_id ) {
 			// Woot! We got an image, so set it as the post thumbnail.
 			set_post_thumbnail( $post_id, $wordpress_id );
 			return;
 		}
-		if ( $wongm_id ) {
-			$video_id = $wongm_id;
+		if ( $wongmRailGallery_id ) {
+			$external_image_id = $wongmRailGallery_id;
 		}
 		if ( $railGeelong_id ) {
-			$video_id = $railGeelong_id;
+			$external_image_id = $railGeelong_id;
 		}
 		if ( $flickr_id ) {
-			$video_id = $flickr_id;
+			$external_image_id = $flickr_id;
 		}
 		if ( $youtube_id ) {
-			$video_id = $youtube_id;
+			$external_image_id = $youtube_id;
 		}
 		if ( $vimeo_id ) {
-			$video_id = $vimeo_id;
+			$external_image_id = $vimeo_id;
 		}
 		if ( ! wp_is_post_revision( $post_id ) ) {
 			
-			wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_url, $video_id );
+			mtw_set_external_image_as_featured_image( $post_id, $external_image_url, $external_image_id );
 		}
 	}
 
@@ -239,22 +229,22 @@ function wds_check_if_content_contains_video( $post_id, $post ) {
 }
 
 /**
- * If a YouTube or Vimeo video is added in the post content, grab its thumbnail and set it as the featured image.
+ * If a external content is added in the post content, grab its thumbnail and set it as the featured image.
  *
  * @since 1.0.0
  *
  * @param int    $post_id             ID of the post being saved.
- * @param string $video_thumbnail_url URL of the image thumbnail.
- * @param string $video_id            Video ID from embed.
+ * @param string $external_image_url URL of the image thumbnail.
+ * @param string $external_image_id            External content ID from embed.
  */
-function wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_url, $video_id = '' ) {
+function mtw_set_external_image_as_featured_image( $post_id, $external_image_url, $external_image_id = '' ) {
 
-	// Bail if no valid video thumbnail URL.
-	if ( ! $video_thumbnail_url || is_wp_error( $video_thumbnail_url ) ) {
+	// Bail if no valid external content URL.
+	if ( ! $external_image_url || is_wp_error( $external_image_url ) ) {
 		return;
 	}
 
-	$post_title = sanitize_title( preg_replace( '/[^a-zA-Z0-9\s]/', '-', get_the_title() ) ) . '-' . $video_id;
+	$post_title = sanitize_title( preg_replace( '/[^a-zA-Z0-9\s]/', '-', get_the_title() ) ) . '-' . $external_image_id;
 
 		//todo fix $post_title
 		//echo $post_title;
@@ -266,7 +256,7 @@ function wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_u
 	$stmt .= $wpdb->prepare(
 		' WHERE post_type = %s AND guid LIKE %s',
         'attachment',
-	    '%' . $wpdb->esc_like( $video_id ) . '%'
+	    '%' . $wpdb->esc_like( $external_image_id ) . '%'
     );
 	$attachment = $wpdb->get_col( $stmt );
 	if ( !empty( $attachment[0] ) ) {
@@ -275,7 +265,7 @@ function wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_u
 		// Try to sideload the image.
 		
 		
-		$attachment_id = wds_ms_media_sideload_image_with_new_filename( $video_thumbnail_url, $post_id, $post_title, $video_id );
+		$attachment_id = mtw_ms_media_sideload_image_with_new_filename( $external_image_url, $post_id, $post_title, $external_image_id );
 	}
 
 	// Bail if unable to sideload (happens if the URL or post ID is invalid, or if the URL 404s).
@@ -287,7 +277,7 @@ function wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_u
 	set_post_thumbnail( $post_id, $attachment_id );
 }
 
-function wds_check_for_wordpress( $content ) {
+function mtw_check_for_wordpress( $content ) {
 	if ( preg_match( '#wp-image-([0-9]+)#', $content, $wordpress_matches ) ) {
 		return $wordpress_matches[1];
 	}
@@ -295,7 +285,39 @@ function wds_check_for_wordpress( $content ) {
 	return false;
 }
 
-function wds_check_for_flickr( $content ) {
+function mtw_check_for_wongmRailGallery( $content ) {
+	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongmRailGallery_matches ) ) {
+		return $wongmRailGallery_matches[6];
+	}
+
+	return false;
+}
+
+function mtw_get_wongmRailGallery_details( $content ) {
+	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongmRailGallery_matches ) ) {
+		return "https://" . $wongmRailGallery_matches[2] . "/albums/" . $wongmRailGallery_matches[5] . "/" . $wongmRailGallery_matches[6] . "." . $wongmRailGallery_matches[8];
+	}
+
+	return "";
+}
+
+function mtw_check_for_railGeelong( $content ) {
+	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $railGeelong_matches ) ) {
+		return $railGeelong_matches[7];
+	}
+
+	return false;
+}
+
+function mtw_get_railGeelong_details( $content ) {
+	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $railGeelong_matches ) ) {
+		return "https://" . $railGeelong_matches[2] . "/albums/" . $railGeelong_matches[6] . "/" . $railGeelong_matches[7] . "." . $railGeelong_matches[9];
+	}
+
+	return "";
+}
+
+function mtw_check_for_flickr( $content ) {
 	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(staticflickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
 		return $flickr_matches[4];
 	}
@@ -303,7 +325,7 @@ function wds_check_for_flickr( $content ) {
 	return false;
 }
 
-function wds_get_flickr_url( $content ) {
+function mtw_get_flickr_details( $content ) {
 	
 	
 	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(staticflickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
@@ -316,39 +338,7 @@ function wds_get_flickr_url( $content ) {
 		return "https://" . $flickr_matches[1] . "." . $flickr_matches[2] . "/" . $flickr_matches[3] . "/" . $flickr_matches[4] . "_" . $flickr_matches[5] . $size . ".jpg";
 	}
 
-	return false;
-}
-
-function wds_check_for_wongmId( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongm_matches ) ) {
-		return $wongm_matches[6];
-	}
-
-	return false;
-}
-
-function wds_check_for_wongm( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongm_matches ) ) {
-		return "https://" . $wongm_matches[2] . "/albums/" . $wongm_matches[5] . "/" . $wongm_matches[6] . "." . $wongm_matches[8];
-	}
-
-	return false;
-}
-
-function wds_check_for_railGeelong( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $railGeelong_matches ) ) {
-		return "https://" . $railGeelong_matches[2] . "/albums/" . $railGeelong_matches[6] . "/" . $railGeelong_matches[7] . "." . $railGeelong_matches[9];
-	}
-
-	return false;
-}
-
-function wds_check_for_railGeelongId( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $railGeelong_matches ) ) {
-		return $railGeelong_matches[7];
-	}
-
-	return false;
+	return "";
 }
 
 
@@ -364,7 +354,7 @@ function wds_check_for_railGeelongId( $content ) {
  * @return string The value of the youtube id.
  *
  */
-function wds_check_for_youtube( $content ) {
+function mtw_check_for_youtube( $content ) {
 	if ( preg_match( '#\/\/(www\.)?(youtu|youtube|youtube-nocookie)\.(com|be)\/(watch|embed)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)#', $content, $youtube_matches ) ) {
 		return $youtube_matches[6];
 	}
@@ -384,7 +374,7 @@ function wds_check_for_youtube( $content ) {
  * @return string The value of the vimeo id.
  *
  */
-function wds_check_for_vimeo( $content ) {
+function mtw_check_for_vimeo( $content ) {
 	if ( preg_match( '#\/\/(.+\.)?(vimeo\.com)\/(\d*)#', $content, $vimeo_matches ) ) {
 		return $vimeo_matches[3];
 	}
@@ -400,14 +390,14 @@ function wds_check_for_vimeo( $content ) {
  * @param string      $url      URL to sideload.
  * @param int         $post_id  Post ID to attach to.
  * @param string|null $filename Filename to use.
- * @param string      $video_id Video ID.
+ * @param string      $external_image_id External content ID.
  *
  * @return mixed
  */
-function wds_ms_media_sideload_image_with_new_filename( $url, $post_id, $filename = null, $video_id ) {
+function mtw_ms_media_sideload_image_with_new_filename( $url, $post_id, $filename = null, $external_image_id ) {
 
 	if ( ! $url || ! $post_id ) {
-		return new WP_Error( 'missing', esc_html__( 'Need a valid URL and post ID...', 'automatic-featured-images-from-videos' ) );
+		return new WP_Error( 'missing', esc_html__( 'Need a valid URL and post ID...', 'automatic-featured-images-from-external-content' ) );
 	}
 
 	require_once( ABSPATH . 'wp-admin/includes/file.php' );
@@ -492,27 +482,27 @@ function wds_ms_media_sideload_image_with_new_filename( $url, $post_id, $filenam
  * @param string $youtube_id Youtube video ID.
  * @return array Video data.
  */
-function wds_get_youtube_details( $youtube_id ) {
+function mtw_get_youtube_details( $youtube_id ) {
 	$video = array();
-	$video_thumbnail_url_string = 'http://img.youtube.com/vi/%s/%s';
+	$external_image_url_string = 'http://img.youtube.com/vi/%s/%s';
 
 	$video_check                      = wp_remote_head( 'https://www.youtube.com/oembed?format=json&url=http://www.youtube.com/watch?v=' . $youtube_id );
 	if ( 200 === wp_remote_retrieve_response_code( $video_check ) ) {
 		$remote_headers               = wp_remote_head(
 			sprintf(
-				$video_thumbnail_url_string,
+				$external_image_url_string,
 				$youtube_id,
 				'maxresdefault.jpg'
 			)
 		);
-		$video['video_thumbnail_url'] = ( 404 === wp_remote_retrieve_response_code( $remote_headers ) ) ?
+		$video['external_image_url'] = ( 404 === wp_remote_retrieve_response_code( $remote_headers ) ) ?
 			sprintf(
-				$video_thumbnail_url_string,
+				$external_image_url_string,
 				$youtube_id,
 				'hqdefault.jpg'
 			) :
 			sprintf(
-				$video_thumbnail_url_string,
+				$external_image_url_string,
 				$youtube_id,
 				'maxresdefault.jpg'
 			);
@@ -533,14 +523,14 @@ function wds_get_youtube_details( $youtube_id ) {
  * @param string $vimeo_id Vimeo video ID.
  * @return array Video information.
  */
-function wds_get_vimeo_details( $vimeo_id ) {
+function mtw_get_vimeo_details( $vimeo_id ) {
 	$video = array();
 
-	// @todo Get remote checking matching with wds_get_youtube_details.
+	// @todo Get remote checking matching with mtw_get_youtube_details.
 	$vimeo_data = wp_remote_get( 'http://www.vimeo.com/api/v2/video/' . intval( $vimeo_id ) . '.php' );
 	if ( 200 === wp_remote_retrieve_response_code( $vimeo_data ) ) {
 		$response                     = unserialize( $vimeo_data['body'] );
-		$video['video_thumbnail_url'] = isset( $response[0]['thumbnail_large'] ) ? $response[0]['thumbnail_large'] : false;
+		$video['external_image_url'] = isset( $response[0]['thumbnail_large'] ) ? $response[0]['thumbnail_large'] : false;
 		$video['video_url']           = $response[0]['url'];
 		$video['video_embed_url']     = 'https://player.vimeo.com/video/' . $vimeo_id;
 	}
@@ -558,9 +548,9 @@ function wds_get_vimeo_details( $vimeo_id ) {
  * @param int $post_id WP post ID to check for video on.
  * @return bool
  */
-function wds_post_has_video( $post_id ) {
+function mtw_post_has_video( $post_id ) {
 	if ( ! metadata_exists( 'post', $post_id, '_is_video' ) ) {
-		wds_check_if_content_contains_video( $post_id, get_post( $post_id ) );
+		mtw_check_if_content_contains_external_content( $post_id, get_post( $post_id ) );
 	}
 
 	return get_post_meta( $post_id, '_is_video', true );
@@ -576,10 +566,10 @@ function wds_post_has_video( $post_id ) {
  * @param int $post_id Post ID to get video url for.
  * @return string
  */
-function wds_get_video_url( $post_id ) {
-	if ( wds_post_has_video( $post_id ) ) {
+function mtw_get_video_url( $post_id ) {
+	if ( mtw_post_has_video( $post_id ) ) {
 		if ( ! metadata_exists( 'post', $post_id, '_video_url' ) ) {
-			wds_check_if_content_contains_video( $post_id, get_post( $post_id ) );
+			mtw_check_if_content_contains_external_content( $post_id, get_post( $post_id ) );
 		}
 
 		return get_post_meta( $post_id, '_video_url', true );
@@ -597,10 +587,10 @@ function wds_get_video_url( $post_id ) {
  * @param int $post_id Post ID to grab video for.
  * @return string
  */
-function wds_get_embeddable_video_url( $post_id ) {
-	if ( wds_post_has_video( $post_id ) ) {
+function mtw_get_embeddable_video_url( $post_id ) {
+	if ( mtw_post_has_video( $post_id ) ) {
 		if ( ! metadata_exists( 'post', $post_id, '_video_embed_url' ) ) {
-			wds_check_if_content_contains_video( $post_id, get_post( $post_id ) );
+			mtw_check_if_content_contains_external_content( $post_id, get_post( $post_id ) );
 		}
 
 		return get_post_meta( $post_id, '_video_embed_url', true );
@@ -613,14 +603,14 @@ function wds_get_embeddable_video_url( $post_id ) {
  * @author Gary Kovar
  * @since 1.1.0
  */
-function wds_register_display_video_metabox() {
+function mtw_register_display_video_metabox() {
 	global $post;
 
 	if ( get_post_meta( $post->ID, '_is_video', true ) ) {
 		add_meta_box(
-			'wds_display_video_urls_metabox',
-			esc_html__( 'Video Files found in Content', 'wds-automatic-featured-images-from-video' ),
-			'wds_video_thumbnail_meta'
+			'mtw_display_video_urls_metabox',
+			esc_html__( 'Video Files found in Content', 'mtw-automatic-featured-images-from-external-content' ),
+			'mtw_video_thumbnail_meta'
 		);
 	}
 }
@@ -630,13 +620,13 @@ function wds_register_display_video_metabox() {
  * @author Gary Kovar
  * @since 1.1.0
  */
-function wds_video_thumbnail_meta() {
+function mtw_video_thumbnail_meta() {
 	global $post;
 
-	echo '<h3>' . esc_html__( 'Video URL', 'wds_automatic_featured_images_from_videos' ) . '</h3>';
-	echo wds_get_video_url($post->ID);
-	echo '<h3>' . esc_html__( 'Video Embed URL', 'wds_automatic_featured_images_from_videos' ) . '</h3>';
-	echo wds_get_embeddable_video_url( $post->ID );
+	echo '<h3>' . esc_html__( 'Video URL', 'mtw_automatic_featured_images_from_external_content' ) . '</h3>';
+	echo mtw_get_video_url($post->ID);
+	echo '<h3>' . esc_html__( 'Video Embed URL', 'mtw_automatic_featured_images_from_external_content' ) . '</h3>';
+	echo mtw_get_embeddable_video_url( $post->ID );
 }
 
 /**
@@ -648,7 +638,7 @@ function wds_video_thumbnail_meta() {
  * @param int    $posts_per_page Posts per page to query for.
  * @return WP_Query WP_Query object
  */
-function wds_automatic_featured_images_from_videos_wp_query( $post_type, $posts_per_page ) {
+function mtw_automatic_featured_images_from_external_content_wp_query( $post_type, $posts_per_page ) {
 	$args  = array(
 		'post_type'      => $post_type,
 		'meta_query'     => array(
@@ -662,3 +652,14 @@ function wds_automatic_featured_images_from_videos_wp_query( $post_type, $posts_
 	);
 	return new WP_Query( $args );
 }
+	
+/**
+ * Remove 'Quick Featured Images' menu item
+ */ 
+add_action( 'admin_menu', 'mtw_remove_menu_pages', 999 );
+function mtw_remove_menu_pages() {
+    remove_menu_page('quick-featured-images-overview');
+}
+	
+	
+?>
