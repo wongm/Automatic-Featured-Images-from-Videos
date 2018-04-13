@@ -146,6 +146,7 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 
 	// Set the external content id.
 	$wordpress_id        = mtw_check_for_wordpress( $content );
+	$wikipedia_id        = mtw_check_for_wikipedia( $content );
 	$wongmRailGallery_id = mtw_check_for_wongmRailGallery( $content );
 	$railGeelong_id      = mtw_check_for_railGeelong( $content );
 	$flickr_id           = mtw_check_for_flickr( $content );
@@ -155,6 +156,10 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 	
 	if ( $wongmRailGallery_id ) {
 		$external_image_url  = mtw_get_wongmRailGallery_details( $content );
+	}
+	
+	if ( $wikipedia_id ) {
+		$external_image_url  = mtw_get_wikipedia_details( $content );
 	}
 	
 	if ( $railGeelong_id ) {
@@ -182,13 +187,17 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 	if ( $post_id
 	     && ! has_post_thumbnail( $post_id )
 	     && $content
-	     && ( $youtube_details || $vimeo_details || $wongmRailGallery_id || $railGeelong_id || $flickr_id || $wordpress_id )
+	     && ( $youtube_details || $vimeo_details || $wongmRailGallery_id || $railGeelong_id || $flickr_id || $wordpress_id || $wikipedia_id )
 	) {
 		$external_image_id = '';
+		
 		if ( $wordpress_id ) {
 			// Woot! We got an image, so set it as the post thumbnail.
 			set_post_thumbnail( $post_id, $wordpress_id );
 			return;
+		}
+		if ( $wikipedia_id ) {
+			$external_image_id = $wikipedia_id;
 		}
 		if ( $wongmRailGallery_id ) {
 			$external_image_id = $wongmRailGallery_id;
@@ -283,6 +292,22 @@ function mtw_check_for_wordpress( $content ) {
 	}
 
 	return false;
+}
+
+function mtw_check_for_wikipedia( $content ) {
+	if ( preg_match( '#\/\/(upload\.wikimedia\.org\/wikipedia\/commons\/thumb)\/([a-zA-Z0-9\-\_\/\.]+)\/([0-9]+)(px-)([a-zA-Z0-9\-\_]+)\.([a-zA-Z]+)#', $content, $wikipedia_matches ) ) {
+		return $wikipedia_matches[5];
+	}
+
+	return false;
+}
+
+function mtw_get_wikipedia_details( $content ) {
+	if ( preg_match( '#\/\/(upload\.wikimedia\.org\/wikipedia\/commons\/thumb)\/([a-zA-Z0-9\-\_\/\.]+)\/([0-9]+)(px-)([a-zA-Z0-9\-\_]+)\.([a-zA-Z]+)#', $content, $wikipedia_matches ) ) {
+		return "https://" . $wikipedia_matches[1] . "/" . $wikipedia_matches[2] . "/1024" . $wikipedia_matches[4] . "." . $wikipedia_matches[5] . "." . $wikipedia_matches[6];
+	}
+
+	return "";
 }
 
 function mtw_check_for_wongmRailGallery( $content ) {
