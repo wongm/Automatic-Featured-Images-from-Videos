@@ -113,9 +113,27 @@ function wds_check_if_content_contains_video( $post_id, $post ) {
 	$content = apply_filters( 'wds_featured_images_from_video_filter_content', $content, $post_id );
 
 	// Set the video id.
+	$flickr_id          = wds_check_for_flickr( $content );
+	$wongm_url          = wds_check_for_wongm( $content );
+	$railGeelong_url          = wds_check_for_railGeelong( $content );
 	$youtube_id          = wds_check_for_youtube( $content );
 	$vimeo_id            = wds_check_for_vimeo( $content );
 	$video_thumbnail_url = '';
+	
+	
+	
+	if ( $wongm_url ) {
+		$video_thumbnail_url = $wongm_url;
+		$wongm_id = wds_check_for_wongmId( $content );
+	}
+	if ( $railGeelong_url ) {
+		$video_thumbnail_url = $railGeelong_url;
+		$railGeelong_id = wds_check_for_railGeelongId( $content );
+	}
+
+	if ( $flickr_id ) {
+		$video_thumbnail_url     = wds_get_flickr_url( $content );
+	}
 
 	if ( $youtube_id ) {
 		$youtube_details     = wds_get_youtube_details( $youtube_id );
@@ -134,9 +152,18 @@ function wds_check_if_content_contains_video( $post_id, $post ) {
 	if ( $post_id
 	     && ! has_post_thumbnail( $post_id )
 	     && $content
-	     && ( $youtube_details || $vimeo_details )
+	     && ( $youtube_details || $vimeo_details || $wongm_id || $railGeelong_id || $flickr_id )
 	) {
 		$video_id = '';
+		if ( $wongm_id ) {
+			$video_id = $wongm_id;
+		}
+		if ( $railGeelong_id ) {
+			$video_id = $railGeelong_id;
+		}
+		if ( $flickr_id ) {
+			$video_id = $flickr_id;
+		}
 		if ( $youtube_id ) {
 			$video_id = $youtube_id;
 		}
@@ -144,6 +171,7 @@ function wds_check_if_content_contains_video( $post_id, $post ) {
 			$video_id = $vimeo_id;
 		}
 		if ( ! wp_is_post_revision( $post_id ) ) {
+			
 			wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_url, $video_id );
 		}
 	}
@@ -183,6 +211,10 @@ function wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_u
 
 	$post_title = sanitize_title( preg_replace( '/[^a-zA-Z0-9\s]/', '-', get_the_title() ) ) . '-' . $video_id;
 
+		//todo fix $post_title
+		//echo $post_title;
+		//die();
+		
 	global $wpdb;
 
 	$stmt = "SELECT ID FROM {$wpdb->posts}";
@@ -196,6 +228,8 @@ function wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_u
 		$attachment_id = $attachment[0];
 	} else {
 		// Try to sideload the image.
+		
+		
 		$attachment_id = wds_ms_media_sideload_image_with_new_filename( $video_thumbnail_url, $post_id, $post_title, $video_id );
 	}
 
@@ -207,6 +241,63 @@ function wds_set_video_thumbnail_as_featured_image( $post_id, $video_thumbnail_u
 	// Woot! We got an image, so set it as the post thumbnail.
 	set_post_thumbnail( $post_id, $attachment_id );
 }
+
+function wds_check_for_flickr( $content ) {
+	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(staticflickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
+		return $flickr_matches[4];
+	}
+
+	return false;
+}
+
+function wds_get_flickr_url( $content ) {
+	
+	
+	if ( preg_match( '#\/\/([a-zA-Z0-9\-\/\_]+).(staticflickr.com)?\/([0-9\/]+)?\/([0-9]+)_([a-zA-Z0-9]+)(_[a-zA-Z0-9]+)?\.jpg#', $content, $flickr_matches ) ) {
+		
+		$size = "_o";
+		if ($flickr_matches[6] != $size) {
+			$size = "_b";
+		}
+		
+		return "https://" . $flickr_matches[1] . "." . $flickr_matches[2] . "/" . $flickr_matches[3] . "/" . $flickr_matches[4] . "_" . $flickr_matches[5] . $size . ".jpg";
+	}
+
+	return false;
+}
+
+function wds_check_for_wongmId( $content ) {
+	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongm_matches ) ) {
+		return $wongm_matches[6];
+	}
+
+	return false;
+}
+
+function wds_check_for_wongm( $content ) {
+	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongm_matches ) ) {
+		return "https://" . $wongm_matches[2] . "/albums/" . $wongm_matches[5] . "/" . $wongm_matches[6] . "." . $wongm_matches[8];
+	}
+
+	return false;
+}
+
+function wds_check_for_railGeelong( $content ) {
+	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $railGeelong_matches ) ) {
+		return "https://" . $railGeelong_matches[2] . "/albums/" . $railGeelong_matches[6] . "/" . $railGeelong_matches[7] . "." . $railGeelong_matches[9];
+	}
+
+	return false;
+}
+
+function wds_check_for_railGeelongId( $content ) {
+	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $railGeelong_matches ) ) {
+		return $railGeelong_matches[7];
+	}
+
+	return false;
+}
+
 
 /**
  * Check if the content contains a youtube url.
