@@ -295,7 +295,7 @@ function mtw_check_for_wordpress( $content ) {
 }
 
 function mtw_check_for_wikipedia( $content ) {
-	if ( preg_match( '#\/\/(upload\.wikimedia\.org\/wikipedia\/commons\/thumb)\/([a-zA-Z0-9\-\_\/\.]+)\/([0-9]+)(px-)([a-zA-Z0-9\-\_]+)\.([a-zA-Z]+)#', $content, $wikipedia_matches ) ) {
+	if ( preg_match( '#\/\/(upload\.wikimedia\.org\/wikipedia\/commons\/thumb)\/([a-zA-Z0-9\-\_\/\.]+)\/([0-9]+)(px-)([a-zA-Z0-9\-\_\.]+)\.([a-zA-Z]+)#', $content, $wikipedia_matches ) ) {
 		return $wikipedia_matches[5];
 	}
 
@@ -303,7 +303,7 @@ function mtw_check_for_wikipedia( $content ) {
 }
 
 function mtw_get_wikipedia_details( $content ) {
-	if ( preg_match( '#\/\/(upload\.wikimedia\.org\/wikipedia\/commons\/thumb)\/([a-zA-Z0-9\-\_\/\.]+)\/([0-9]+)(px-)([a-zA-Z0-9\-\_]+)\.([a-zA-Z]+)#', $content, $wikipedia_matches ) ) {
+	if ( preg_match( '#\/\/(upload\.wikimedia\.org\/wikipedia\/commons\/thumb)\/([a-zA-Z0-9\-\_\/\.]+)\/([0-9]+)(px-)([a-zA-Z0-9\-\_\.]+)\.([a-zA-Z]+)#', $content, $wikipedia_matches ) ) {
 		return "https://" . $wikipedia_matches[1] . "/" . $wikipedia_matches[2] . "/1024" . $wikipedia_matches[4] . "." . $wikipedia_matches[5] . "." . $wikipedia_matches[6];
 	}
 
