@@ -2,7 +2,7 @@
 /*
  * Plugin Name: Automatic Featured Images from External Content
  * Plugin URI: https://github.com/wongm/automatic-featured-images-from-external-content
- * Description: If a YouTube or Vimeo video exists in the first few paragraphs of a post, automatically set the post's featured image to that video's thumbnail.
+ * Description: If a Flickr or Wikipedia image or YouTube or Vimeo video exists in the first few paragraphs of a post, automatically set the post's featured image to that video's thumbnail.
  * Version: 1.2
  * Author: Marcus Wong
  * Author URI: https://github.com/wongm/automatic-featured-images-from-external-content
