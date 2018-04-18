@@ -150,7 +150,7 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 	$content = substr( $content, 0, apply_filters( 'mtw_featured_images_character_limit', 1200 ) );
 	
 	// Add post except if it exists
-	$content .= isset( $post->post_excerpt ) ? $post->post_excerpt : '';
+	$content = ( isset( $post->post_excerpt ) ? $post->post_excerpt : '' ) . $content;
 
 	// Allow developers to filter the content to allow for searching in postmeta or other places.
 	$content = apply_filters( 'mtw_featured_images_from_external_content_filter_content', $content, $post_id );
