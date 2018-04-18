@@ -156,11 +156,11 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 	$content = apply_filters( 'mtw_featured_images_from_external_content_filter_content', $content, $post_id );
 
 	// Set the external content id.
-	$wordpress_id        = mtw_check_for_wordpress( $content );
-	$wikipedia_id        = mtw_check_for_wikipedia( $content );
 	$wongmRailGallery_id = mtw_check_for_wongmRailGallery( $content );
 	$railGeelong_id      = mtw_check_for_railGeelong( $content );
 	$flickr_id           = mtw_check_for_flickr( $content );
+	$wikipedia_id        = mtw_check_for_wikipedia( $content );
+	$wordpress_id        = mtw_check_for_wordpress( $content );
 	$youtube_id          = mtw_check_for_youtube( $content );
 	$vimeo_id            = mtw_check_for_vimeo( $content );
 	$external_image_url  = '';
@@ -169,26 +169,26 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 		$external_image_url  = mtw_get_wongmRailGallery_details( $content );
 	}
 	
-	if ( $wikipedia_id ) {
-		$external_image_url  = mtw_get_wikipedia_details( $content );
-	}
-	
-	if ( $railGeelong_id ) {
+	if ( $railGeelong_id && $external_image_url == '' ) {
 		$external_image_url  = mtw_get_railGeelong_details( $content );
 	}
 
-	if ( $flickr_id ) {
+	if ( $flickr_id && $external_image_url == '' ) {
 		$external_image_url  = mtw_get_flickr_details( $content );
 	}
+	
+	if ( $wikipedia_id && $external_image_url == '' ) {
+		$external_image_url  = mtw_get_wikipedia_details( $content );
+	}
 
-	if ( $youtube_id ) {
+	if ( $youtube_id && $external_image_url == '' ) {
 		$youtube_details     = mtw_get_youtube_details( $youtube_id );
 		$external_image_url  = $youtube_details['external_image_url'];
 		$video_url           = $youtube_details['video_url'];
 		$video_embed_url     = $youtube_details['video_embed_url'];
 	}
 
-	if ( $vimeo_id ) {
+	if ( $vimeo_id && $external_image_url == '' ) {
 		$vimeo_details       = mtw_get_vimeo_details( $vimeo_id );
 		$external_image_url  = $vimeo_details['external_image_url'];
 		$video_url           = $vimeo_details['video_url'];
@@ -202,27 +202,27 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 	) {
 		$external_image_id = '';
 		
-		if ( $wordpress_id ) {
+		if ( $wongmRailGallery_id ) {
+			$external_image_id = $wongmRailGallery_id;
+		}
+		if ( $railGeelong_id && $external_image_id == '' ) {
+			$external_image_id = $railGeelong_id;
+		}
+		if ( $flickr_id && $external_image_id == '' ) {
+			$external_image_id = $flickr_id;
+		}		
+		if ( $wordpress_id && $external_image_id == '' ) {
 			// Woot! We got an image, so set it as the post thumbnail.
 			set_post_thumbnail( $post_id, $wordpress_id );
 			return;
 		}
-		if ( $wikipedia_id ) {
+		if ( $wikipedia_id && $external_image_id == '' ) {
 			$external_image_id = $wikipedia_id;
 		}
-		if ( $wongmRailGallery_id ) {
-			$external_image_id = $wongmRailGallery_id;
-		}
-		if ( $railGeelong_id ) {
-			$external_image_id = $railGeelong_id;
-		}
-		if ( $flickr_id ) {
-			$external_image_id = $flickr_id;
-		}
-		if ( $youtube_id ) {
+		if ( $youtube_id && $external_image_id == '' ) {
 			$external_image_id = $youtube_id;
 		}
-		if ( $vimeo_id ) {
+		if ( $vimeo_id && $external_image_id == '' ) {
 			$external_image_id = $vimeo_id;
 		}
 		if ( ! wp_is_post_revision( $post_id ) ) {
