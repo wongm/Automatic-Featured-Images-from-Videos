@@ -322,7 +322,7 @@ function mtw_get_wikipedia_details( $content ) {
 }
 
 function mtw_check_for_wongmRailGallery( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongmRailGallery_matches ) ) {
+	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_\/]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongmRailGallery_matches ) ) {
 		return $wongmRailGallery_matches[6];
 	}
 
@@ -330,7 +330,11 @@ function mtw_check_for_wongmRailGallery( $content ) {
 }
 
 function mtw_get_wongmRailGallery_details( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongmRailGallery_matches ) ) {
+	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_\/]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongmRailGallery_matches ) ) {
+		
+		if ($wongmRailGallery_matches[5] == 'metro-trains-melbourne')
+			$wongmRailGallery_matches[5] = 'metro-trains-melbourne-tofix';
+		
 		return "https://" . $wongmRailGallery_matches[2] . "/albums/" . $wongmRailGallery_matches[5] . "/" . $wongmRailGallery_matches[6] . "." . $wongmRailGallery_matches[8];
 	}
 
