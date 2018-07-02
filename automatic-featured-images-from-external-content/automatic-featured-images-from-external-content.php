@@ -149,12 +149,26 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 	 */
 	$content = substr( $content, 0, apply_filters( 'mtw_featured_images_character_limit', 1200 ) );
 	
-	// Add post except if it exists
-	$content = ( isset( $post->post_excerpt ) ? $post->post_excerpt : '' ) . $content;
-
+	$external_image_url_from_excerpt = '';
+	if (isset( $post->post_excerpt ))
+	{
+		$external_image_url_from_excerpt = mtw_parse_for_external_image_url($post_id, $post, $post->post_excerpt, 'parseonly');
+	}
+	
+	if (strlen($external_image_url_from_excerpt) > 0)
+	{
+		mtw_parse_for_external_image_url($post_id, $post, $post->post_excerpt, 'save');
+		return;
+	}
+	
 	// Allow developers to filter the content to allow for searching in postmeta or other places.
 	$content = apply_filters( 'mtw_featured_images_from_external_content_filter_content', $content, $post_id );
+	
+	mtw_parse_for_external_image_url($post_id, $post, $content, 'save');
+}
 
+function mtw_parse_for_external_image_url($post_id, $post, $content, $mode)
+{
 	// Set the external content id.
 	$wongmRailGallery_id = mtw_check_for_wongmRailGallery( $content );
 	$railGeelong_id      = mtw_check_for_railGeelong( $content );
@@ -193,6 +207,11 @@ function mtw_check_if_content_contains_external_content( $post_id, $post ) {
 		$external_image_url  = $vimeo_details['external_image_url'];
 		$video_url           = $vimeo_details['video_url'];
 		$video_embed_url     = $vimeo_details['video_embed_url'];
+	}
+	
+	if ($mode == 'parseonly')
+	{
+		return $external_image_url;
 	}
 
 	if ( $post_id
