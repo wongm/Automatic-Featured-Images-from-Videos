@@ -322,7 +322,7 @@ function mtw_get_wikipedia_details( $content ) {
 }
 
 function mtw_check_for_wongmRailGallery( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_\/]+)\/([a-zA-Z0-9\-\_ ]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongmRailGallery_matches ) ) {
+	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_\/]+)\/([a-zA-Z0-9\-\_ ]+)_([0-9])+\.([a-zA-Z]+)(\?.+?)?"#', $content, $wongmRailGallery_matches ) ) {
 		return $wongmRailGallery_matches[6];
 	}
 
@@ -330,7 +330,7 @@ function mtw_check_for_wongmRailGallery( $content ) {
 }
 
 function mtw_get_wongmRailGallery_details( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_\/]+)\/([a-zA-Z0-9\-\_ ]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $wongmRailGallery_matches ) ) {
+	if ( preg_match( '#\/\/(www\.)?(railgallery.wongm.com)?\/(cache\/)?\/?(\?v=)?([a-zA-Z0-9\-\_\/]+)\/([a-zA-Z0-9\-\_ ]+)_([0-9])+\.([a-zA-Z]+)(\?.+?)?"#', $content, $wongmRailGallery_matches ) ) {
 		
 		if ($wongmRailGallery_matches[5] == 'metro-trains-melbourne')
 			$wongmRailGallery_matches[5] = 'metro-trains-melbourne-tofix';
@@ -342,7 +342,7 @@ function mtw_get_wongmRailGallery_details( $content ) {
 }
 
 function mtw_check_for_railGeelong( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $railGeelong_matches ) ) {
+	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)(\?.+?)?"#', $content, $railGeelong_matches ) ) {
 		return $railGeelong_matches[7];
 	}
 
@@ -350,7 +350,7 @@ function mtw_check_for_railGeelong( $content ) {
 }
 
 function mtw_get_railGeelong_details( $content ) {
-	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)"#', $content, $railGeelong_matches ) ) {
+	if ( preg_match( '#\/\/(www\.)?(railgeelong.com)?\/(gallery\/)?(cache)\/?(\?v=)?([a-zA-Z0-9\-\/\_]+)\/([a-zA-Z0-9\-\_]+)_([0-9])+\.([a-zA-Z]+)(\?.+?)?"#', $content, $railGeelong_matches ) ) {
 		return "https://" . $railGeelong_matches[2] . "/albums/" . $railGeelong_matches[6] . "/" . $railGeelong_matches[7] . "." . $railGeelong_matches[9];
 	}
 
